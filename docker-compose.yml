@@ -9,8 +9,7 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/uptimekit
       - TIMESERIES_BACKEND=${TIMESERIES_BACKEND:-timescale}
       - APPRISE_URL=http://apprise:8000
-      - INTEGRATION_API_KEY=${INTEGRATION_API_KEY:?INTEGRATION_API_KEY is required}
-      - INTEGRATION_ORGANIZATION_ID=${INTEGRATION_ORGANIZATION_ID:?INTEGRATION_ORGANIZATION_ID is required}
+      - INTEGRATION_API_KEYS=${INTEGRATION_API_KEYS:-}
     depends_on:
       db:
         condition: service_healthy

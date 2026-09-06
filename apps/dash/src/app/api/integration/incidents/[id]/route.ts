@@ -39,8 +39,10 @@ export async function PATCH(
     if (!auth.ok) return auth.response;
     try {
         const id = (await params).id;
+        const { organizationId: _organizationId, ...body } =
+            (await request.json()) as Record<string, unknown>;
         const input = incidentUpdateInputSchema.parse({
-            ...(await request.json()),
+            ...body,
             id,
         });
         return NextResponse.json(

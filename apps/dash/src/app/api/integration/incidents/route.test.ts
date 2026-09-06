@@ -30,6 +30,7 @@ const headers = { authorization: "Bearer test-integration-key" };
 
 describe("integration incident API", () => {
     beforeEach(() => {
+        delete process.env.INTEGRATION_API_KEYS;
         process.env.INTEGRATION_API_KEY = "test-integration-key";
         process.env.INTEGRATION_ORGANIZATION_ID = "org-configured";
         vi.clearAllMocks();
@@ -47,7 +48,7 @@ describe("integration incident API", () => {
         expect(response.status).toBe(401);
     });
 
-    it("fetches, creates, updates, and resolves without accepting an organization id", async () => {
+    it("fetches, creates, updates, and resolves within the legacy organization", async () => {
         const listResponse = await GET(
             new Request("http://localhost/api/integration/incidents", {
                 headers,
@@ -59,7 +60,7 @@ describe("integration incident API", () => {
                 headers: {
                     ...headers,
                     "content-type": "application/json",
-                    "x-organization-id": "attacker-org",
+                    "x-organization-id": "org-configured",
                 },
                 body: JSON.stringify({
                     title: "API down",
@@ -125,5 +126,123 @@ describe("integration incident API", () => {
             "incident-1",
             { name: "integration" },
         );
+    });
+
+    it("allows one key to access each of its organizations in separate requests", async () => {
+        process.env.INTEGRATION_API_KEYS = JSON.stringify([
+            { key: "multi-key", organizationIds: ["org-a", "org-b"] },
+        ]);
+
+        await GET(
+            new Request("http://localhost/api/integration/incidents", {
+                headers: {
+                    authorization: "Bearer multi-key",
+                    "x-organization-id": "org-a",
+                },
+            }),
+        );
+        await GET(
+            new Request("http://localhost/api/integration/incidents", {
+                headers: {
+                    authorization: "Bearer multi-key",
+                    "x-organization-id": "org-b",
+                },
+            }),
+        );
+
+        expect(mocks.listIncidents).toHaveBeenNthCalledWith(1, "org-a");
+        expect(mocks.listIncidents).toHaveBeenNthCalledWith(2, "org-b");
+    });
+
+    it("requires and validates a single organization for multi-organization keys", async () => {
+        process.env.INTEGRATION_API_KEYS = JSON.stringify([
+            { key: "multi-key", organizationIds: ["org-a", "org-b"] },
+        ]);
+
+        const missing = await GET(
+            new Request("http://localhost/api/integration/incidents", {
+                headers: { authorization: "Bearer multi-key" },
+            }),
+        );
+        const outside = await GET(
+            new Request("http://localhost/api/integration/incidents", {
+                headers: {
+                    authorization: "Bearer multi-key",
+                    "x-organization-id": "org-c",
+                },
+            }),
+        );
+        const multiple = await GET(
+            new Request("http://localhost/api/integration/incidents", {
+                headers: {
+                    authorization: "Bearer multi-key",
+                    "x-organization-id": "org-a, org-b",
+                },
+            }),
+        );
+
+        expect(missing.status).toBe(400);
+        expect(outside.status).toBe(403);
+        expect(multiple.status).toBe(400);
+    });
+
+    it("does not accept an organization from a query string or incident body", async () => {
+        process.env.INTEGRATION_API_KEYS = JSON.stringify([
+            { key: "single-key", organizationIds: ["org-a"] },
+        ]);
+
+        const response = await POST(
+            new Request(
+                "http://localhost/api/integration/incidents?organizationId=org-attacker",
+                {
+                    method: "POST",
+                    headers: {
+                        authorization: "Bearer single-key",
+                        "content-type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        organizationId: "org-attacker",
+                        title: "API down",
+                        severity: "major",
+                    }),
+                },
+            ),
+        );
+
+        expect(response.status).toBe(201);
+        expect(mocks.createIncident).toHaveBeenCalledWith(
+            "org-a",
+            expect.not.objectContaining({ organizationId: "org-attacker" }),
+            { name: "integration" },
+        );
+    });
+
+    it("rejects invalid configuration and credentials", async () => {
+        process.env.INTEGRATION_API_KEYS = "not-json";
+        expect(
+            (
+                await GET(
+                    new Request("http://localhost/api/integration/incidents", {
+                        headers,
+                    }),
+                )
+            ).status,
+        ).toBe(503);
+
+        process.env.INTEGRATION_API_KEYS = JSON.stringify([
+            { key: "multi-key", organizationIds: ["org-a", "org-b"] },
+        ]);
+        expect(
+            (
+                await GET(
+                    new Request("http://localhost/api/integration/incidents", {
+                        headers: {
+                            authorization: "Bearer wrong-key",
+                            "x-organization-id": "org-a",
+                        },
+                    }),
+                )
+            ).status,
+        ).toBe(401);
     });
 });

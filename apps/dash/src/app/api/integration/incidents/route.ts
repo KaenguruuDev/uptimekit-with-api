@@ -18,7 +18,9 @@ export async function POST(request: Request) {
     const auth = authorizeIntegrationRequest(request);
     if (!auth.ok) return auth.response;
     try {
-        const input = incidentCreateInputSchema.parse(await request.json());
+        const { organizationId: _organizationId, ...body } =
+            (await request.json()) as Record<string, unknown>;
+        const input = incidentCreateInputSchema.parse(body);
         return NextResponse.json(
             await createIncident(auth.organizationId, input, actor),
             { status: 201 },
