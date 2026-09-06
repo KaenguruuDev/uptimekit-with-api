@@ -43,6 +43,9 @@
         },
         "./pkg/integrations/definitions/ntfy-meta": {
             "default": "./src/pkg/integrations/definitions/ntfy-meta.ts"
+        },
+        "./pkg/incidents/service": {
+            "default": "./src/pkg/incidents/service.ts"
         }
     },
     "type": "module",
