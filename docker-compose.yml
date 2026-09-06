@@ -1,6 +1,6 @@
 services:
   dash:
-    image: ghcr.io/uptimekit/dash:latest
+    image: ghcr.io/kaenguruudev/uptimekit-dash:5.1.0-api1
     ports:
       - "${DASH_PORT:-3000}:3000"
     env_file:
@@ -9,6 +9,8 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/uptimekit
       - TIMESERIES_BACKEND=${TIMESERIES_BACKEND:-timescale}
       - APPRISE_URL=http://apprise:8000
+      - INTEGRATION_API_KEY=${INTEGRATION_API_KEY:?INTEGRATION_API_KEY is required}
+      - INTEGRATION_ORGANIZATION_ID=${INTEGRATION_ORGANIZATION_ID:?INTEGRATION_ORGANIZATION_ID is required}
     depends_on:
       db:
         condition: service_healthy

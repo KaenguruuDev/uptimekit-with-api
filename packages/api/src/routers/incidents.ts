@@ -12,6 +12,11 @@ import { and, desc, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure, writeProcedure } from "../index";
 import { publishAppEvent } from "../lib/events";
+import {
+    createIncident as createIncidentService,
+    resolveIncident as resolveIncidentService,
+    updateIncident as updateIncidentService,
+} from "../pkg/incidents/service";
 import { processPendingNotifications } from "../pkg/notifications";
 
 const incidentTimestampSchema = z.coerce.date();
@@ -467,6 +472,21 @@ export const incidentsRouter = {
             }),
         )
         .handler(async ({ input, context }) => {
+            if (
+                context.authType === "session" ||
+                context.authType === "apiKey"
+            ) {
+                return createIncidentService(
+                    getActiveOrganizationId(
+                        context.session.session.activeOrganizationId,
+                    ),
+                    input,
+                    {
+                        name: context.session.user.name,
+                        userId: context.session.user.id,
+                    },
+                );
+            }
             const id = crypto.randomUUID();
             const now = new Date();
             const startedAt = input.startedAt ?? now;
@@ -566,6 +586,21 @@ export const incidentsRouter = {
         })
         .input(incidentUpdateInputSchema)
         .handler(async ({ input, context }) => {
+            if (
+                context.authType === "session" ||
+                context.authType === "apiKey"
+            ) {
+                return updateIncidentService(
+                    getActiveOrganizationId(
+                        context.session.session.activeOrganizationId,
+                    ),
+                    input,
+                    {
+                        name: context.session.user.name,
+                        userId: context.session.user.id,
+                    },
+                );
+            }
             const organizationId = getActiveOrganizationId(
                 context.session.session.activeOrganizationId,
             );
@@ -836,6 +871,21 @@ export const incidentsRouter = {
         })
         .input(z.object({ id: z.string() }))
         .handler(async ({ input, context }) => {
+            if (
+                context.authType === "session" ||
+                context.authType === "apiKey"
+            ) {
+                return resolveIncidentService(
+                    getActiveOrganizationId(
+                        context.session.session.activeOrganizationId,
+                    ),
+                    input.id,
+                    {
+                        name: context.session.user.name,
+                        userId: context.session.user.id,
+                    },
+                );
+            }
             const now = new Date();
 
             const existing = await db.query.incident.findFirst({
