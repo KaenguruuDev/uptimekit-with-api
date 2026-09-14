@@ -1,3 +1,9 @@
+# THIS FORK IS ARCHIVED. IT SERVES AS A PLACE TO REMIND YOU THAT YOU SHOULD PROBABLY READ MORE THAN JUST THE FIRST QUARTER OF A README TO DECIDE IF A PROJECT HAS WHAT YOU NEED. PLEASE USE THE UPSTREAM VERSION AND SUPPORT THE DEVELOPER IF YOU CAN, HE IS DOING GREAT WORK.
+
+
+
+---
+
 <div align="center">
   <a href="https://uptimekit.dev">
     <img src="https://r2.uptimekit.dev/logos/uptimekit.svg" alt="UptimeKit Logo" width="120" height="120">
